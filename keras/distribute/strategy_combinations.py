@@ -12,21 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
-import tensorflow as tf
 """Strategy combinations for combinations.combine()."""
+
+import tensorflow.compat.v2 as tf
 
 
 multidevice_strategies = [
     tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
     tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+    tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus_no_merge_call,
     tf.__internal__.distribute.combinations.tpu_strategy,
 ]
 
 multiworker_strategies = [
     tf.__internal__.distribute.combinations.multi_worker_mirrored_2x1_cpu,
     tf.__internal__.distribute.combinations.multi_worker_mirrored_2x1_gpu,
-    tf.__internal__.distribute.combinations.multi_worker_mirrored_2x2_gpu
+    tf.__internal__.distribute.combinations.multi_worker_mirrored_2x2_gpu,
+    tf.__internal__.distribute.combinations.multi_worker_mirrored_2x2_gpu_no_merge_call
 ]
 
 strategies_minus_default_minus_tpu = [
@@ -34,6 +36,7 @@ strategies_minus_default_minus_tpu = [
     tf.__internal__.distribute.combinations.one_device_strategy_gpu,
     tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
     tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+    tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus_no_merge_call,
     tf.__internal__.distribute.combinations.central_storage_strategy_with_gpu_and_cpu
 ]
 
@@ -43,6 +46,7 @@ strategies_minus_tpu = [
     tf.__internal__.distribute.combinations.one_device_strategy_gpu,
     tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
     tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+    tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus_no_merge_call,
     tf.__internal__.distribute.combinations.central_storage_strategy_with_gpu_and_cpu
 ]
 
@@ -50,10 +54,21 @@ multi_worker_mirrored_strategies = [
     tf.__internal__.distribute.combinations.multi_worker_mirrored_2x1_cpu,
     tf.__internal__.distribute.combinations.multi_worker_mirrored_2x1_gpu,
     tf.__internal__.distribute.combinations.multi_worker_mirrored_2x2_gpu,
+    tf.__internal__.distribute.combinations.multi_worker_mirrored_2x2_gpu_no_merge_call
 ]
 
 tpu_strategies = [
     tf.__internal__.distribute.combinations.tpu_strategy,
+]
+
+parameter_server_strategies_single_worker = [
+    tf.__internal__.distribute.combinations.parameter_server_strategy_1worker_2ps_cpu,
+    tf.__internal__.distribute.combinations.parameter_server_strategy_1worker_2ps_1gpu,
+]
+
+parameter_server_strategies_multi_worker = [
+    tf.__internal__.distribute.combinations.parameter_server_strategy_3worker_2ps_cpu,
+    tf.__internal__.distribute.combinations.parameter_server_strategy_3worker_2ps_1gpu,
 ]
 
 all_strategies = strategies_minus_tpu + tpu_strategies

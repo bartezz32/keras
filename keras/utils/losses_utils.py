@@ -14,12 +14,9 @@
 # ==============================================================================
 # pylint: disable=protected-access
 """Utilities related to loss functions."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import tensorflow as tf
-from keras import backend as K
+import tensorflow.compat.v2 as tf
+from keras import backend
 from keras.engine import keras_tensor
 from tensorflow.python.util.tf_export import keras_export
 
@@ -35,10 +32,21 @@ class ReductionV2(object):
      used with `tf.distribute.Strategy`, outside of built-in training loops such
      as `tf.keras` `compile` and `fit`, we expect reduction value to be
      `SUM` or `NONE`. Using `AUTO` in that case will raise an error.
-  * `NONE`: Weighted losses with one dimension reduced (axis=-1, or axis
-     specified by loss function). When this reduction type used with built-in
-     Keras training loops like `fit`/`evaluate`, the unreduced vector loss is
-     passed to the optimizer but the reported loss will be a scalar value.
+  * `NONE`: No **additional** reduction is applied to the output of the wrapped
+     loss function. When non-scalar losses are returned to Keras functions like
+     `fit`/`evaluate`, the unreduced vector loss is passed to the optimizer
+     but the reported loss will be a scalar value.
+
+     Caution: **Verify the shape of the outputs when using** `Reduction.NONE`.
+     The builtin loss functions wrapped by the loss classes reduce
+     one dimension (`axis=-1`, or `axis` if specified by loss function).
+     `Reduction.NONE` just means that no **additional** reduction is applied by
+     the class wrapper. For categorical losses with an example input shape of
+     `[batch, W, H, n_classes]` the `n_classes` dimension is reduced. For
+     pointwise losses your must include a dummy axis so that `[batch, W, H, 1]`
+     is reduced to `[batch, W, H]`. Without the dummy axis `[batch, W, H]`
+     will be incorrectly reduced to `[batch, W]`.
+
   * `SUM`: Scalar sum of weighted losses.
   * `SUM_OVER_BATCH_SIZE`: Scalar `SUM` divided by number of elements in losses.
      This reduction type is not supported when used with
@@ -101,7 +109,7 @@ def remove_squeezable_dimensions(
   Returns:
     Tuple of `labels` and `predictions`, possibly with last dim squeezed.
   """
-  with K.name_scope(name or 'remove_squeezable_dimensions'):
+  with backend.name_scope(name or 'remove_squeezable_dimensions'):
     if not isinstance(predictions, tf.RaggedTensor):
       predictions = tf.convert_to_tensor(predictions)
     if not isinstance(labels, tf.RaggedTensor):
@@ -244,7 +252,7 @@ def _safe_mean(losses, num_present):
 
 def _num_elements(losses):
   """Computes the number of elements in `losses` tensor."""
-  with K.name_scope('num_elements') as scope:
+  with backend.name_scope('num_elements') as scope:
     return tf.cast(tf.compat.v1.size(losses, name=scope), dtype=losses.dtype)
 
 
@@ -260,6 +268,7 @@ def reduce_weighted_loss(weighted_losses,
   return loss
 
 
+@keras_export('keras.__internal__.losses.compute_weighted_loss', v1=[])
 def compute_weighted_loss(losses,
                           sample_weight=None,
                           reduction=ReductionV2.SUM_OVER_BATCH_SIZE,
@@ -289,12 +298,13 @@ def compute_weighted_loss(losses,
     reduction = ReductionV2.SUM_OVER_BATCH_SIZE
   if sample_weight is None:
     sample_weight = 1.0
-  with K.name_scope(name or 'weighted_loss'):
+  with backend.name_scope(name or 'weighted_loss'):
     # Save the `reduction` argument for loss normalization when distributing
     # to multiple replicas. Used only for estimator + v1 optimizer flow.
     tf.compat.v1.get_default_graph()._last_loss_reduction = reduction  # pylint: disable=protected-access
 
-    if not isinstance(losses, keras_tensor.KerasTensor):
+    if not isinstance(losses,
+                      (keras_tensor.KerasTensor, tf.RaggedTensor)):
       losses = tf.convert_to_tensor(losses)
     input_dtype = losses.dtype
 

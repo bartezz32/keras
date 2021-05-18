@@ -9,13 +9,25 @@ package(
         "//keras:__subpackages__",
         "//third_party/tensorflow:__subpackages__",
     ],
-    licenses = ["notice"],  # Apache 2.0
+    licenses = ["notice"],
 )
 
 filegroup(
     name = "all_py_srcs",
     srcs = glob(["*.py"]),
     visibility = ["//keras/google/private_tf_api_test:__pkg__"],
+)
+
+py_library(
+    name = "layers",
+    srcs = ["__init__.py"],
+    deps = [
+        ":convolutional",
+        ":core",
+        ":layers_base",
+        ":normalization",
+        ":pooling",
+    ],
 )
 
 py_library(
@@ -62,7 +74,7 @@ py_library(
     deps = [
         ":layers_base",
         "//:expect_tensorflow_installed",
-        "//keras/layers:normalization",
+        "//keras/layers/normalization",
     ],
 )
 

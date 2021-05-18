@@ -13,11 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for Keras metrics."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v2 as tf
 
 from absl.testing import parameterized
 from keras import metrics
@@ -73,6 +70,7 @@ def all_combinations():
           tf.__internal__.distribute.combinations.one_device_strategy,
           tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
           tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+          tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus_no_merge_call,
       ],
       mode=["graph"])
 

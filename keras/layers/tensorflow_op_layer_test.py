@@ -13,11 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """Test for allowing TF ops to work with Keras Functional API."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v2 as tf
 
 import time
 
@@ -157,7 +154,7 @@ def _int32_manipulation_at_max_shape_dims_limit():
   # Verify that a value was actually inferred for a tensor that *might*
   # represent the shape, bying checking that a value in
   # the range appears in the printed inferred value
-  if keras_tensor.keras_tensors_enabled():
+  if tf.compat.v1.executing_eagerly_outside_functions():
     assert str(keras_tensor._MAX_TENSOR_RANK - 1) in str(x)
 
   x = tf.reshape(x, (batch_size, num_features))
@@ -413,7 +410,7 @@ class AutoLambdaTest(keras_parameterized.TestCase):
     expected = tf.stack([
         tf.range(8)[::step] for _ in range(batch_size)])
 
-    if keras_tensor.keras_tensors_enabled():
+    if tf.compat.v1.executing_eagerly_outside_functions():
       self.assertIn('tf.__operators__.getitem', (
           x.name for x in model.layers))
       self.assertNotIn('tf.strided_slice', (
@@ -447,7 +444,7 @@ class AutoLambdaTest(keras_parameterized.TestCase):
     args = tf.constant(stop, shape=(batch_size,))
     expected = x[:stop]
 
-    if keras_tensor.keras_tensors_enabled():
+    if tf.compat.v1.executing_eagerly_outside_functions():
       self.assertIn('tf.__operators__.getitem', (
           x.name for x in model.layers))
       # TODO(b/161925288): Fix the dispatch triggering then uncomment:
@@ -481,7 +478,7 @@ class AutoLambdaTest(keras_parameterized.TestCase):
     args = tf.constant(index, shape=(batch_size,))
     expected = x[index]
 
-    if keras_tensor.keras_tensors_enabled():
+    if tf.compat.v1.executing_eagerly_outside_functions():
       self.assertIn('tf.__operators__.getitem', (
           x.name for x in model.layers))
       # TODO(b/161925288): Fix the bug then uncomment:
@@ -518,7 +515,7 @@ class AutoLambdaTest(keras_parameterized.TestCase):
     args = [x, tf.constant(stop, shape=(batch_size,))]
     expected = x[:stop]
 
-    if keras_tensor.keras_tensors_enabled():
+    if tf.compat.v1.executing_eagerly_outside_functions():
       self.assertIn('tf.__operators__.getitem', (
           x.name for x in model.layers))
       self.assertNotIn('tf.strided_slice', (
@@ -555,7 +552,7 @@ class AutoLambdaTest(keras_parameterized.TestCase):
     expected = tf.stack([
         tf.range(8)[:stop] for _ in range(batch_size)])
 
-    if keras_tensor.keras_tensors_enabled():
+    if tf.compat.v1.executing_eagerly_outside_functions():
       self.assertIn('tf.__operators__.getitem', (
           x.name for x in model.layers))
       self.assertNotIn('tf.strided_slice', (
@@ -605,7 +602,7 @@ class AutoLambdaTest(keras_parameterized.TestCase):
         tf.range(8)[start:stop:step]
         for _ in range(4)]) for _ in range(batch_size)])
 
-    if keras_tensor.keras_tensors_enabled():
+    if tf.compat.v1.executing_eagerly_outside_functions():
       self.assertIn('tf.__operators__.getitem', (
           x.name for x in model.layers))
       self.assertNotIn('tf.strided_slice', (

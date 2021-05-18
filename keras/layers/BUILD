@@ -14,7 +14,7 @@ package(
         "//third_party/tensorflow/tools/pip_package:__pkg__",
         "//third_party/tensorflow_models/official/vision/beta/projects/residual_mobilenet/modeling/backbones:__pkg__",
     ],
-    licenses = ["notice"],  # Apache 2.0
+    licenses = ["notice"],
 )
 
 filegroup(
@@ -46,14 +46,13 @@ py_library(
         ":merge",
         ":multi_head_attention",
         ":noise",
-        ":normalization",
-        ":normalization_v2",
         ":pooling",
         ":recurrent",
         ":recurrent_v2",
         ":rnn_cell_wrapper_v2",
         ":wrappers",
         "//keras/feature_column",
+        "//keras/layers/normalization",
         "//keras/layers/preprocessing",
         "//keras/premade",
         "//keras/utils:tf_utils",
@@ -132,7 +131,6 @@ py_library(
         "//keras:regularizers",
         "//keras/engine:input_spec",
         "//keras/engine:keras_tensor",
-        "//keras/layers/ops:core",
         "//keras/utils:engine_utils",
         "//keras/utils:generic_utils",
         "//keras/utils:tf_utils",
@@ -216,7 +214,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         "//:expect_numpy_installed",
-        "//:expect_six_installed",
         "//:expect_tensorflow_installed",
         "//keras:base_layer",
         "//keras:initializers",
@@ -265,33 +262,6 @@ py_library(
         "//keras:backend",
         "//keras:base_layer",
         "//keras/utils:tf_utils",
-    ],
-)
-
-py_library(
-    name = "normalization",
-    srcs = ["normalization.py"],
-    srcs_version = "PY3",
-    deps = [
-        "//:expect_tensorflow_installed",
-        "//keras:backend",
-        "//keras:base_layer",
-        "//keras:constraints",
-        "//keras:initializers",
-        "//keras:regularizers",
-        "//keras/engine:base_layer_utils",
-        "//keras/engine:input_spec",
-        "//keras/utils:tf_utils",
-    ],
-)
-
-py_library(
-    name = "normalization_v2",
-    srcs = ["normalization_v2.py"],
-    srcs_version = "PY3",
-    deps = [
-        ":normalization",
-        "//:expect_tensorflow_installed",
     ],
 )
 
@@ -462,6 +432,7 @@ tf_py_test(
     # TODO(b/127881287): Re-enable.
     tags = [
         "no_windows_gpu",
+        "notsan",  # TODO(b/183962355)
     ],
     deps = [
         "//:expect_absl_installed",
@@ -590,24 +561,6 @@ tf_py_test(
         "//:expect_absl_installed",
         "//:expect_tensorflow_installed",
         "//keras",
-    ],
-)
-
-cuda_py_test(
-    name = "normalization_test",
-    size = "medium",
-    srcs = ["normalization_test.py"],
-    python_version = "PY3",
-    shard_count = 4,
-    tags = [
-        "notsan",
-    ],
-    deps = [
-        "//:expect_absl_installed",
-        "//:expect_numpy_installed",
-        "//:expect_tensorflow_installed",
-        "//keras",
-        "//keras:combinations",
     ],
 )
 

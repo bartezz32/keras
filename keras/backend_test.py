@@ -13,11 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for Keras backend."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v2 as tf
 
 import gc
 import warnings
@@ -33,7 +30,7 @@ from keras import backend
 from keras import combinations
 from keras.engine import input_layer
 from keras.layers import advanced_activations
-from keras.layers import normalization
+from keras.layers.normalization import batch_normalization_v1
 from keras.utils import tf_inspect
 
 
@@ -157,7 +154,7 @@ class BackendUtilsTest(tf.test.TestCase):
       # Test running with a learning-phase-consuming layer
       with backend.learning_phase_scope(0):
         x = input_layer.Input((3,))
-        y = normalization.BatchNormalization()(x)
+        y = batch_normalization_v1.BatchNormalization()(x)
         if not tf.executing_eagerly():
           self.evaluate(tf.compat.v1.global_variables_initializer())
           sess.run(y, feed_dict={x: np.random.random((2, 3))})
@@ -599,6 +596,12 @@ class BackendShapeOpsTest(tf.test.TestCase):
     x = backend.variable(np.ones((1, 3, 2, 2)))
     y = backend.resize_images(x, height_factor, width_factor, data_format)
     self.assertEqual(y.shape.as_list(), [1, 3, 4, 4])
+
+    # Use with a dynamic axis:
+    if not tf.executing_eagerly():
+      x = backend.placeholder(shape=(1, 3, None, None))
+      y = backend.resize_images(x, height_factor, width_factor, data_format)
+      self.assertEqual(y.shape.as_list(), [1, 3, None, None])
 
     # Invalid use:
     with self.assertRaises(ValueError):

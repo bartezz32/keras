@@ -9,7 +9,7 @@ package(
     default_visibility = [
         "//third_party/tensorflow/tools/pip_package:__pkg__",
     ],
-    licenses = ["notice"],  # Apache 2.0
+    licenses = ["notice"],
 )
 
 tf_py_test(
@@ -19,6 +19,7 @@ tf_py_test(
     deps = [
         "//:expect_absl_installed",
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
 
@@ -28,6 +29,7 @@ tf_py_test(
     python_version = "PY3",
     deps = [
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
 
@@ -37,6 +39,7 @@ tf_py_test(
     python_version = "PY3",
     deps = [
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
 
@@ -47,6 +50,7 @@ cuda_py_test(
     deps = [
         "//:expect_absl_installed",
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
 
@@ -56,6 +60,7 @@ tf_py_test(
     python_version = "PY3",
     deps = [
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
 
@@ -64,6 +69,7 @@ tf_py_test(
     srcs = ["module_test.py"],
     deps = [
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
 
@@ -73,6 +79,7 @@ tf_py_test(
     python_version = "PY3",
     deps = [
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
 
@@ -82,8 +89,26 @@ cuda_py_test(
     python_version = "PY3",
     deps = [
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )
+
+# cuda_py_test(
+#     name = "central_storage_strategy_test",
+#     srcs = ["central_storage_strategy_test.py"],
+#     python_version = "PY3",
+#     tags = [
+#         "multi_and_single_gpu",
+#         "no_windows_gpu",  # TODO(b/130551176)
+#     ],
+#     deps = [
+#         "//:expect_absl_installed",
+#         "//:expect_tensorflow_installed",
+#         "//third_party/tensorflow/python/distribute:combinations",
+#         "//third_party/tensorflow/python/distribute:strategy_combinations",
+#         "//third_party/tensorflow/python/keras/utils:kpl_test_utils",
+#     ],
+# )
 
 tpu_py_test(
     name = "tpu_strategy_test",
@@ -104,8 +129,9 @@ tf_py_test(
     python_version = "PY3",
     shard_count = 3,
     tags = [
-        "no_tfrt",  # TODO(b/171765113)
+        "no_windows",  # TODO(b/183102726)
         "noasan",  # TODO(b/156029134)
+        "nomac",  # TODO(b/182567880)
         "nomsan",  # TODO(b/156029134)
         "notsan",  # TODO(b/156029134)
     ],
@@ -113,5 +139,6 @@ tf_py_test(
         "//:expect_absl_installed",
         "//:expect_portpicker_installed",
         "//:expect_tensorflow_installed",
+        "//keras/api:keras_api",
     ],
 )

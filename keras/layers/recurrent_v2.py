@@ -12,19 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Recurrent layers for TF 2.0.
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+# pylint: disable=g-classes-have-attributes
+"""Recurrent layers for TF 2."""
 
-import tensorflow as tf
+import tensorflow.compat.v2 as tf
 
 import uuid
-from tensorflow.python.eager import function
 from tensorflow.python.eager.context import get_device_name
 from keras import activations
-from keras import backend as K
+from keras import backend
 from keras.engine.input_spec import InputSpec
 from keras.layers import recurrent
 from tensorflow.python.platform import tf_logging as logging
@@ -400,7 +396,7 @@ class GRU(recurrent.DropoutRNNCellMixin, recurrent.GRU):
       if self._could_use_gpu_kernel:
         logging.debug(_CUDNN_AVAILABLE_MSG % self.name)
       else:
-        logging.warn(_CUDNN_NOT_AVAILABLE_MSG % self.name)
+        logging.warning(_CUDNN_NOT_AVAILABLE_MSG % self.name)
 
     if _use_new_code():
       self._defun_wrapper = _DefunWrapper(time_major, go_backwards, 'gru')
@@ -408,7 +404,7 @@ class GRU(recurrent.DropoutRNNCellMixin, recurrent.GRU):
   def call(self, inputs, mask=None, training=None, initial_state=None):
     # The input should be dense, padded with zeros. If a ragged input is fed
     # into the layer, it is padded and the row lengths are used for masking.
-    inputs, row_lengths = K.convert_inputs_if_ragged(inputs)
+    inputs, row_lengths = backend.convert_inputs_if_ragged(inputs)
     is_ragged_input = (row_lengths is not None)
     self._validate_args_if_ragged(is_ragged_input, mask)
 
@@ -418,7 +414,7 @@ class GRU(recurrent.DropoutRNNCellMixin, recurrent.GRU):
     if isinstance(mask, list):
       mask = mask[0]
 
-    input_shape = K.int_shape(inputs)
+    input_shape = backend.int_shape(inputs)
     timesteps = input_shape[0] if self.time_major else input_shape[1]
 
     # TODO(b/156447398) Investigate why the cuDNN kernel fails with ragged
@@ -430,7 +426,7 @@ class GRU(recurrent.DropoutRNNCellMixin, recurrent.GRU):
       def step(cell_inputs, cell_states):
         return self.cell(cell_inputs, cell_states, **kwargs)
 
-      last_output, outputs, states = K.rnn(
+      last_output, outputs, states = backend.rnn(
           step,
           inputs,
           initial_state,
@@ -452,7 +448,8 @@ class GRU(recurrent.DropoutRNNCellMixin, recurrent.GRU):
       self.add_update(updates)
 
     if self.return_sequences:
-      output = K.maybe_convert_to_ragged(is_ragged_input, outputs, row_lengths)
+      output = backend.maybe_convert_to_ragged(
+          is_ragged_input, outputs, row_lengths, go_backwards=self.go_backwards)
     else:
       output = last_output
 
@@ -568,7 +565,7 @@ def standard_gru(inputs, init_h, kernel, recurrent_kernel, bias, mask,
     runtime: constant string tensor which indicate real runtime hardware. This
       value is for testing purpose and should be used by user.
   """
-  input_shape = K.int_shape(inputs)
+  input_shape = backend.int_shape(inputs)
   timesteps = input_shape[0] if time_major else input_shape[1]
 
   input_bias, recurrent_bias = tf.unstack(bias)
@@ -578,14 +575,14 @@ def standard_gru(inputs, init_h, kernel, recurrent_kernel, bias, mask,
     h_tm1 = cell_states[0]
 
     # inputs projected by all gate matrices at once
-    matrix_x = K.dot(cell_inputs, kernel)
-    matrix_x = K.bias_add(matrix_x, input_bias)
+    matrix_x = backend.dot(cell_inputs, kernel)
+    matrix_x = backend.bias_add(matrix_x, input_bias)
 
     x_z, x_r, x_h = tf.split(matrix_x, 3, axis=1)
 
     # hidden state projected by all gate matrices at once
-    matrix_inner = K.dot(h_tm1, recurrent_kernel)
-    matrix_inner = K.bias_add(matrix_inner, recurrent_bias)
+    matrix_inner = backend.dot(h_tm1, recurrent_kernel)
+    matrix_inner = backend.bias_add(matrix_inner, recurrent_bias)
 
     recurrent_z, recurrent_r, recurrent_h = tf.split(matrix_inner, 3,
                                                             axis=1)
@@ -597,7 +594,7 @@ def standard_gru(inputs, init_h, kernel, recurrent_kernel, bias, mask,
     h = z * h_tm1 + (1 - z) * hh
     return h, [h]
 
-  last_output, outputs, new_states = K.rnn(
+  last_output, outputs, new_states = backend.rnn(
       step,
       inputs, [init_h],
       constants=None,
@@ -627,7 +624,7 @@ def gpu_gru(inputs, init_h, kernel, recurrent_kernel, bias, mask, time_major,
   weights += tf.split(recurrent_kernel, 3, axis=1)
   # Note that the bias was initialized as shape (2, 3 * units), flat it into
   # (6 * units)
-  bias = tf.split(K.flatten(bias), 6)
+  bias = tf.split(backend.flatten(bias), 6)
 
   if tf.sysconfig.get_build_info()['is_cuda_build']:
     # Note that the gate order for CuDNN is different from the canonical format.
@@ -1126,7 +1123,7 @@ class LSTM(recurrent.DropoutRNNCellMixin, recurrent.LSTM):
       if self._could_use_gpu_kernel:
         logging.debug(_CUDNN_AVAILABLE_MSG % self.name)
       else:
-        logging.warn(_CUDNN_NOT_AVAILABLE_MSG % self.name)
+        logging.warning(_CUDNN_NOT_AVAILABLE_MSG % self.name)
 
     if _use_new_code():
       self._defun_wrapper = _DefunWrapper(time_major, go_backwards, 'lstm')
@@ -1134,7 +1131,7 @@ class LSTM(recurrent.DropoutRNNCellMixin, recurrent.LSTM):
   def call(self, inputs, mask=None, training=None, initial_state=None):
     # The input should be dense, padded with zeros. If a ragged input is fed
     # into the layer, it is padded and the row lengths are used for masking.
-    inputs, row_lengths = K.convert_inputs_if_ragged(inputs)
+    inputs, row_lengths = backend.convert_inputs_if_ragged(inputs)
     is_ragged_input = (row_lengths is not None)
     self._validate_args_if_ragged(is_ragged_input, mask)
 
@@ -1144,7 +1141,7 @@ class LSTM(recurrent.DropoutRNNCellMixin, recurrent.LSTM):
     if isinstance(mask, list):
       mask = mask[0]
 
-    input_shape = K.int_shape(inputs)
+    input_shape = backend.int_shape(inputs)
     timesteps = input_shape[0] if self.time_major else input_shape[1]
 
     # TODO(b/156447398) Investigate why the cuDNN kernel fails with ragged
@@ -1157,7 +1154,7 @@ class LSTM(recurrent.DropoutRNNCellMixin, recurrent.LSTM):
       def step(inputs, states):
         return self.cell(inputs, states, **kwargs)
 
-      last_output, outputs, states = K.rnn(
+      last_output, outputs, states = backend.rnn(
           step,
           inputs,
           initial_state,
@@ -1264,7 +1261,8 @@ class LSTM(recurrent.DropoutRNNCellMixin, recurrent.LSTM):
       self.add_update(updates)
 
     if self.return_sequences:
-      output = K.maybe_convert_to_ragged(is_ragged_input, outputs, row_lengths)
+      output = backend.maybe_convert_to_ragged(
+          is_ragged_input, outputs, row_lengths, go_backwards=self.go_backwards)
     else:
       output = last_output
 
@@ -1355,7 +1353,7 @@ def standard_lstm(inputs, init_h, init_c, kernel, recurrent_kernel, bias,
     runtime: constant string tensor which indicate real runtime hardware. This
       value is for testing purpose and should be used by user.
   """
-  input_shape = K.int_shape(inputs)
+  input_shape = backend.int_shape(inputs)
   timesteps = input_shape[0] if time_major else input_shape[1]
 
   def step(cell_inputs, cell_states):
@@ -1363,9 +1361,9 @@ def standard_lstm(inputs, init_h, init_c, kernel, recurrent_kernel, bias,
     h_tm1 = cell_states[0]  # previous memory state
     c_tm1 = cell_states[1]  # previous carry state
 
-    z = K.dot(cell_inputs, kernel)
-    z += K.dot(h_tm1, recurrent_kernel)
-    z = K.bias_add(z, bias)
+    z = backend.dot(cell_inputs, kernel)
+    z += backend.dot(h_tm1, recurrent_kernel)
+    z = backend.bias_add(z, bias)
 
     z0, z1, z2, z3 = tf.split(z, 4, axis=1)
 
@@ -1377,7 +1375,7 @@ def standard_lstm(inputs, init_h, init_c, kernel, recurrent_kernel, bias,
     h = o * tf.tanh(c)
     return h, [h, c]
 
-  last_output, outputs, new_states = K.rnn(
+  last_output, outputs, new_states = backend.rnn(
       step,
       inputs, [init_h, init_c],
       constants=None,
@@ -1779,9 +1777,6 @@ def _function_register(func, *args, **kwargs):
   Raises:
     ValueError: When the input function is not a defun wrapped python function.
   """
-  if not isinstance(func, function.Function):
-    raise ValueError('Only defun function is allowed to be registered. '
-                     'Got type: %s' % type(func))
   concrete_func = func.get_concrete_function(*args, **kwargs)
   concrete_func.add_to_graph()
   concrete_func.add_gradient_functions_to_graph()

@@ -13,11 +13,8 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for tf.keras models using tf.distribute.Strategy."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v2 as tf
 
 import os
 
@@ -25,13 +22,12 @@ from absl.testing import parameterized
 import numpy as np
 
 import keras
-from tensorflow.python.distribute import multi_worker_test_base
-from tensorflow.python.distribute import values as ds_values_lib
 from tensorflow.python.distribute.cluster_resolver import SimpleClusterResolver
 from keras import backend
 from keras import testing_utils
 from keras.distribute import distributed_training_utils
 from keras.distribute import distributed_training_utils_v1
+from keras.distribute import multi_worker_testing_utils
 from keras.distribute import optimizer_combinations
 from keras.distribute.strategy_combinations import all_strategies
 from keras.distribute.strategy_combinations import multi_worker_mirrored_strategies
@@ -236,6 +232,7 @@ def all_strategy_minus_default_and_tpu_combinations():
           tf.__internal__.distribute.combinations.one_device_strategy_gpu,
           tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
           tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+          tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus_no_merge_call,
       ],
       mode=['graph', 'eager'])
 
@@ -548,7 +545,7 @@ class TestDistributionStrategyWithNumpyArrays(tf.test.TestCase,
         return self.v2 + inp
 
     with self.cached_session(), distribution.scope():
-      layer = MyLayer(dtype=policy.Policy(policy_name))
+      layer = MyLayer(dtype=policy_name)
       def run_fn():
         x = np.array([1.])
         with tf.GradientTape() as tape:
@@ -1290,7 +1287,9 @@ class TestDistributionStrategyWithDatasets(tf.test.TestCase,
       tf.__internal__.test.combinations.combine(
           distribution=[
               tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
-              tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus
+              tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+              tf.__internal__.distribute.combinations
+              .mirrored_strategy_with_two_gpus_no_merge_call,
           ],
           mode=['graph', 'eager']))
   def test_learning_phase_value(self, distribution):
@@ -2026,7 +2025,9 @@ class TestDistributionStrategyWithKerasModels(tf.test.TestCase,
       tf.__internal__.test.combinations.combine(
           distribution=[
               tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
-              tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus
+              tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+              tf.__internal__.distribute.combinations
+              .mirrored_strategy_with_two_gpus_no_merge_call,
           ],
           mode=['graph', 'eager'],
           reduction=[
@@ -2183,6 +2184,8 @@ class TestDistributionStrategyWithKerasModels(tf.test.TestCase,
               tf.__internal__.distribute.combinations.one_device_strategy_gpu,
               tf.__internal__.distribute.combinations.mirrored_strategy_with_gpu_and_cpu,
               tf.__internal__.distribute.combinations.mirrored_strategy_with_two_gpus,
+              tf.__internal__.distribute.combinations
+              .mirrored_strategy_with_two_gpus_no_merge_call,
           ],
           mode=['eager']))
   def test_distribution_strategy_with_add_metric_object(
@@ -2395,7 +2398,7 @@ class TestDistributionStrategyWithKerasModels(tf.test.TestCase,
 
   @tf.__internal__.distribute.combinations.generate(tf.__internal__.test.combinations.combine(mode=['graph', 'eager']))
   def test_unimplemented_parameter_server_strategy(self):
-    cluster_spec = multi_worker_test_base.create_in_process_cluster(
+    cluster_spec = multi_worker_testing_utils.create_in_process_cluster(
         num_workers=3, num_ps=2)
     cluster_resolver = SimpleClusterResolver(
         cluster_spec=tf.train.ClusterSpec(cluster_spec),
@@ -2665,16 +2668,18 @@ class TestModelCapturesStrategy(tf.test.TestCase, parameterized.TestCase):
       model = create_model()
       model.load_weights(temp_dir)
       self.assertNotEmpty(model.optimizer.weights)
-      self.assertIsInstance(model.optimizer.weights[0],
-                            ds_values_lib.DistributedVariable)
+      self.assertTrue(
+          distributed_training_utils.is_distributed_variable(
+              model.optimizer.weights[0]))
 
     with distribution.scope():
       model = create_model()
     # create/restore slot variables outside of scope is fine.
     model.load_weights(temp_dir)
     self.assertNotEmpty(model.optimizer.weights)
-    self.assertIsInstance(model.optimizer.weights[0],
-                          ds_values_lib.DistributedVariable)
+    self.assertTrue(
+        distributed_training_utils.is_distributed_variable(
+            model.optimizer.weights[0]))
 
 
 if __name__ == '__main__':

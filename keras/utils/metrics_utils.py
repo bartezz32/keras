@@ -13,13 +13,9 @@
 # limitations under the License.
 # ==============================================================================
 # pylint: disable=protected-access
-"""Utils related to keras metrics.
-"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+"""Utils related to keras metrics."""
 
-import tensorflow as tf
+import tensorflow.compat.v2 as tf
 
 import functools
 import weakref
@@ -61,9 +57,6 @@ def update_state_wrapper(update_state_fn):
   def decorated(metric_obj, *args, **kwargs):
     """Decorated function with `add_update()`."""
     strategy = tf.distribute.get_strategy()
-    # TODO(b/142574744): Remove this check if a better solution is found for
-    # declaring keras Metric outside of TPUStrategy and then updating it per
-    # replica.
 
     for weight in metric_obj.weights:
       if (backend.is_tpu_strategy(strategy) and
@@ -107,7 +100,23 @@ def result_wrapper(result_fn):
     has_strategy = tf.distribute.has_strategy()
     replica_context = tf.distribute.get_replica_context()
     if not has_strategy or replica_context is None:
-      result_t = tf.identity(result_fn(*args))
+      raw_result = result_fn(*args)
+      # Results need to be wrapped in a `tf.identity` op to ensure
+      # correct execution order.
+      if isinstance(raw_result,
+                    (tf.Tensor, tf.Variable, float, int)):
+        result_t = tf.identity(raw_result)
+      elif isinstance(raw_result, dict):
+        result_t = {key: tf.identity(value)
+                    for key, value in raw_result.items()}
+      else:
+        try:
+          result_t = tf.identity(raw_result)
+        except (ValueError, TypeError):
+          raise RuntimeError(
+              'The output of `metric.result()` can only be a single '
+              'Tensor/Variable, or a dict of Tensors/Variables. '
+              'For metric %s, got result %s.' % (metric_obj.name, raw_result))
     else:
       # TODO(psv): Test distribution of metrics using different distribution
       # strategies.
@@ -353,9 +362,8 @@ def update_confusion_matrix_variables(variables_to_update,
     num_labels = 1
   else:
     num_labels = tf.raw_ops.Prod(input=pred_shape[1:], axis=0)
-  thresh_label_tile = tf.compat.v1.cond(
-      one_thresh, lambda: num_labels,
-      lambda: tf.cast(1, dtype=tf.int32))
+  thresh_label_tile = tf.where(one_thresh, num_labels,
+                                         tf.ones([], dtype=tf.int32))
 
   # Reshape predictions and labels, adding a dim for thresholding.
   if multi_label:

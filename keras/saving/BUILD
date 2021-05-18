@@ -9,10 +9,8 @@ package(
         "//keras:__subpackages__",
         "//third_party/tensorflow/python/distribute:__pkg__",
     ],
-    licenses = ["notice"],  # Apache 2.0
+    licenses = ["notice"],
 )
-
-exports_files(["LICENSE"])
 
 filegroup(
     name = "all_py_srcs",
@@ -57,7 +55,8 @@ py_library(
         "//keras:regularizers",
         "//keras/engine:input_spec",
         "//keras/mixed_precision:autocast_variable",
-        "//keras/protobuf:saved_metadata_proto_py",
+        "//keras/protobuf:saved_metadata_proto_py_pb2",
+        "//keras/saving/utils_v1",
         "//keras/utils:engine_utils",
         "//keras/utils:metrics_utils",
         "//keras/utils:mode_keys",
@@ -163,10 +162,9 @@ tf_py_test(
     python_version = "PY3",
     shard_count = 4,
     tags = [
-        "no_oss",  # TODO(b/175911576)
         "no_rocm",
         "no_windows",
-        "notap",  # TODO(b/175911576)
+        "notsan",  #TODO(b/181771982): it is flaky
     ],
     deps = [
         "//:expect_absl_installed",
